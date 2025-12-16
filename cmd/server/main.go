@@ -33,6 +33,10 @@ func main() {
 	router.Use(middleware.RecoveryHandler())
 	router.Use(middleware.ErrorHandler())
 
+	// Swagger 문서 라우트
+	router.StaticFile("/swagger", "./docs/swagger.html")
+	router.StaticFile("/docs/swagger.json", "./docs/swagger.json")
+
 	routes.SetupRoutes(router)
 
 	addr := ":" + cfg.Server.Port

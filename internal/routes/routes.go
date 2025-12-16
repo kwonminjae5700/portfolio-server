@@ -24,6 +24,7 @@ func SetupRoutes(router *gin.Engine) {
 	}
 
 	articleHandler := handlers.NewArticleHandler()
+	commentHandler := handlers.NewCommentHandler()
 	articles := router.Group("/articles")
 	{
 		articles.GET("", articleHandler.GetArticles)
@@ -31,16 +32,21 @@ func SetupRoutes(router *gin.Engine) {
 		articles.POST("", middleware.AuthMiddleware(), articleHandler.CreateArticle)
 		articles.PUT("/:id", middleware.AuthMiddleware(), articleHandler.UpdateArticle)
 		articles.DELETE("/:id", middleware.AuthMiddleware(), articleHandler.DeleteArticle)
-
-		commentHandler := handlers.NewCommentHandler()
-		articles.GET("/:article_id/comments", commentHandler.GetCommentsByArticle)
+		
+		// Comments routes
+		articles.GET("/:id/comments", commentHandler.GetComments)
+		articles.POST("/:id/comments", middleware.AuthMiddleware(), commentHandler.CreateComment)
+		articles.PUT("/:id/comments/:commentId", middleware.AuthMiddleware(), commentHandler.UpdateComment)
+		articles.DELETE("/:id/comments/:commentId", middleware.AuthMiddleware(), commentHandler.DeleteComment)
 	}
 
-	commentHandler := handlers.NewCommentHandler()
-	comments := router.Group("/comments")
+	categoryHandler := handlers.NewCategoryHandler()
+	categories := router.Group("/categories")
 	{
-		comments.POST("", middleware.AuthMiddleware(), commentHandler.CreateComment)
-		comments.PUT("/:id", middleware.AuthMiddleware(), commentHandler.UpdateComment)
-		comments.DELETE("/:id", middleware.AuthMiddleware(), commentHandler.DeleteComment)
+		categories.GET("", categoryHandler.GetCategories)
+		categories.GET("/:id", categoryHandler.GetCategory)
+		categories.POST("", middleware.AuthMiddleware(), categoryHandler.CreateCategory)
+		categories.PUT("/:id", middleware.AuthMiddleware(), categoryHandler.UpdateCategory)
+		categories.DELETE("/:id", middleware.AuthMiddleware(), categoryHandler.DeleteCategory)
 	}
 }
