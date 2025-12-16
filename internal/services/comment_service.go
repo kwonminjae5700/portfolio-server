@@ -20,55 +20,72 @@ func NewCommentService() *CommentService {
 }
 
 type CreateCommentRequest struct {
-	ArticleID uint   `json:"article_id" binding:"required"`
-	Content   string `json:"content" binding:"required,min=1"`
+	Content string `json:"content" binding:"required,min=1"`
 }
 
 type UpdateCommentRequest struct {
 	Content string `json:"content" binding:"required,min=1"`
 }
 
-func (s *CommentService) CreateComment(req *CreateCommentRequest, authorID uint) (*models.Comment, error) {
+func (s *CommentService) CreateComment(articleID uint, req *CreateCommentRequest, authorID uint) (*models.CommentResponse, error) {
+	// Check if article exists
 	var article models.Article
-	if err := s.db.First(&article, req.ArticleID).Error; err != nil {
+	if err := s.db.First(&article, articleID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrArticleNotFound()
 		}
-		return nil, fmt.Errorf("failed to verify article: %w", err)
+		return nil, fmt.Errorf("failed to find article: %w", err)
 	}
 
 	comment := models.Comment{
-		ArticleID: req.ArticleID,
-		AuthorID:  authorID,
 		Content:   req.Content,
+		AuthorID:  authorID,
+		ArticleID: articleID,
 	}
 
 	if err := s.db.Create(&comment).Error; err != nil {
 		return nil, fmt.Errorf("failed to create comment: %w", err)
 	}
 
-	// Preload author
+	// Load author
 	if err := s.db.Preload("Author").First(&comment, comment.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load comment: %w", err)
 	}
 
-	return &comment, nil
+	return &models.CommentResponse{
+		ID:         comment.ID,
+		Content:    comment.Content,
+		AuthorID:   comment.AuthorID,
+		AuthorName: comment.Author.Username,
+		ArticleID:  comment.ArticleID,
+		CreatedAt:  comment.CreatedAt,
+		UpdatedAt:  comment.UpdatedAt,
+	}, nil
 }
 
-func (s *CommentService) GetCommentsByArticle(articleID uint, lastID *uint, limit int) (*models.CommentListResponse, error) {
-	if limit <= 0 || limit > 100 {
-		limit = 50
+func (s *CommentService) GetCommentsByArticleID(articleID uint, lastID *uint, limit int) (*models.CommentListResponse, error) {
+	// Check if article exists
+	var article models.Article
+	if err := s.db.First(&article, articleID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.ErrArticleNotFound()
+		}
+		return nil, fmt.Errorf("failed to find article: %w", err)
+	}
+
+	if limit <= 0 || limit > 50 {
+		limit = 20
 	}
 
 	query := s.db.Model(&models.Comment{}).
-		Preload("Author").
-		Where("article_id = ?", articleID)
+		Where("article_id = ?", articleID).
+		Preload("Author")
 
 	if lastID != nil && *lastID > 0 {
-		query = query.Where("id < ?", *lastID)
+		query = query.Where("id > ?", *lastID)
 	}
 
-	query = query.Order("id DESC").Limit(limit + 1)
+	query = query.Order("id ASC").Limit(limit + 1)
 
 	var comments []models.Comment
 	if err := query.Find(&comments).Error; err != nil {
@@ -84,10 +101,10 @@ func (s *CommentService) GetCommentsByArticle(articleID uint, lastID *uint, limi
 	for i, comment := range comments {
 		responses[i] = models.CommentResponse{
 			ID:         comment.ID,
-			ArticleID:  comment.ArticleID,
+			Content:    comment.Content,
 			AuthorID:   comment.AuthorID,
 			AuthorName: comment.Author.Username,
-			Content:    comment.Content,
+			ArticleID:  comment.ArticleID,
 			CreatedAt:  comment.CreatedAt,
 			UpdatedAt:  comment.UpdatedAt,
 		}
@@ -106,9 +123,9 @@ func (s *CommentService) GetCommentsByArticle(articleID uint, lastID *uint, limi
 	}, nil
 }
 
-func (s *CommentService) UpdateComment(id uint, req *UpdateCommentRequest, userID uint) (*models.Comment, error) {
+func (s *CommentService) UpdateComment(commentID uint, req *UpdateCommentRequest, userID uint) (*models.CommentResponse, error) {
 	var comment models.Comment
-	if err := s.db.First(&comment, id).Error; err != nil {
+	if err := s.db.First(&comment, commentID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrCommentNotFound()
 		}
@@ -120,28 +137,36 @@ func (s *CommentService) UpdateComment(id uint, req *UpdateCommentRequest, userI
 	}
 
 	comment.Content = req.Content
+
 	if err := s.db.Save(&comment).Error; err != nil {
 		return nil, fmt.Errorf("failed to update comment: %w", err)
 	}
 
-	// Preload author
+	// Load author
 	if err := s.db.Preload("Author").First(&comment, comment.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load comment: %w", err)
 	}
 
-	return &comment, nil
+	return &models.CommentResponse{
+		ID:         comment.ID,
+		Content:    comment.Content,
+		AuthorID:   comment.AuthorID,
+		AuthorName: comment.Author.Username,
+		ArticleID:  comment.ArticleID,
+		CreatedAt:  comment.CreatedAt,
+		UpdatedAt:  comment.UpdatedAt,
+	}, nil
 }
 
-func (s *CommentService) DeleteComment(id uint, userID uint) error {
+func (s *CommentService) DeleteComment(commentID uint, userID uint) error {
 	var comment models.Comment
-	if err := s.db.First(&comment, id).Error; err != nil {
+	if err := s.db.First(&comment, commentID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrCommentNotFound()
 		}
 		return fmt.Errorf("failed to get comment: %w", err)
 	}
 
-	// Check if user is the author
 	if comment.AuthorID != userID {
 		return errors.ErrPermissionDenied()
 	}

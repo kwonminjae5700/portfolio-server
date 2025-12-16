@@ -20,13 +20,15 @@ func NewArticleService() *ArticleService {
 }
 
 type CreateArticleRequest struct {
-	Title   string `json:"title" binding:"required,min=1,max=200"`
-	Content string `json:"content" binding:"required,min=1"`
+	Title       string `json:"title" binding:"required,min=1,max=200"`
+	Content     string `json:"content" binding:"required,min=1"`
+	CategoryIDs []uint `json:"category_ids"`
 }
 
 type UpdateArticleRequest struct {
-	Title   string `json:"title" binding:"required,min=1,max=200"`
-	Content string `json:"content" binding:"required,min=1"`
+	Title       string `json:"title" binding:"required,min=1,max=200"`
+	Content     string `json:"content" binding:"required,min=1"`
+	CategoryIDs []uint `json:"category_ids"`
 }
 
 func (s *ArticleService) CreateArticle(req *CreateArticleRequest, authorID uint) (*models.Article, error) {
@@ -40,7 +42,18 @@ func (s *ArticleService) CreateArticle(req *CreateArticleRequest, authorID uint)
 		return nil, fmt.Errorf("failed to create article: %w", err)
 	}
 
-	if err := s.db.Preload("Author").First(&article, article.ID).Error; err != nil {
+	// Add categories if provided
+	if len(req.CategoryIDs) > 0 {
+		var categories []models.Category
+		if err := s.db.Where("id IN ?", req.CategoryIDs).Find(&categories).Error; err != nil {
+			return nil, fmt.Errorf("failed to find categories: %w", err)
+		}
+		if err := s.db.Model(&article).Association("Categories").Replace(categories); err != nil {
+			return nil, fmt.Errorf("failed to associate categories: %w", err)
+		}
+	}
+
+	if err := s.db.Preload("Author").Preload("Categories").First(&article, article.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load article: %w", err)
 	}
 
@@ -49,7 +62,7 @@ func (s *ArticleService) CreateArticle(req *CreateArticleRequest, authorID uint)
 
 func (s *ArticleService) GetArticleByID(id uint) (*models.ArticleResponse, error) {
 	var article models.Article
-	if err := s.db.Preload("Author").First(&article, id).Error; err != nil {
+	if err := s.db.Preload("Author").Preload("Categories").First(&article, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrArticleNotFound()
 		}
@@ -59,19 +72,21 @@ func (s *ArticleService) GetArticleByID(id uint) (*models.ArticleResponse, error
 	s.db.Model(&article).Update("view_count", gorm.Expr("view_count + ?", 1))
 	article.ViewCount++
 
-	var commentCount int64
-	s.db.Model(&models.Comment{}).Where("article_id = ?", id).Count(&commentCount)
+	categories := make([]models.CategoryInfo, len(article.Categories))
+	for i, cat := range article.Categories {
+		categories[i] = models.CategoryInfo{ID: cat.ID, Name: cat.Name}
+	}
 
 	response := &models.ArticleResponse{
-		ID:           article.ID,
-		Title:        article.Title,
-		Content:      article.Content,
-		AuthorID:     article.AuthorID,
-		AuthorName:   article.Author.Username,
-		ViewCount:    article.ViewCount,
-		CommentCount: int(commentCount),
-		CreatedAt:    article.CreatedAt,
-		UpdatedAt:    article.UpdatedAt,
+		ID:         article.ID,
+		Title:      article.Title,
+		Content:    article.Content,
+		AuthorID:   article.AuthorID,
+		AuthorName: article.Author.Username,
+		ViewCount:  article.ViewCount,
+		Categories: categories,
+		CreatedAt:  article.CreatedAt,
+		UpdatedAt:  article.UpdatedAt,
 	}
 
 	return response, nil
@@ -82,7 +97,7 @@ func (s *ArticleService) GetArticles(lastID *uint, limit int) (*models.ArticleLi
 		limit = 20
 	}
 
-	query := s.db.Model(&models.Article{}).Preload("Author")
+	query := s.db.Model(&models.Article{}).Preload("Author").Preload("Categories")
 
 	if lastID != nil && *lastID > 0 {
 		query = query.Where("id < ?", *lastID)
@@ -100,42 +115,22 @@ func (s *ArticleService) GetArticles(lastID *uint, limit int) (*models.ArticleLi
 		articles = articles[:limit]
 	}
 
-	articleIDs := make([]uint, len(articles))
-	for i, article := range articles {
-		articleIDs[i] = article.ID
-	}
-
-	type CommentCountResult struct {
-		ArticleID uint
-		Count     int64
-	}
-
-	var commentCounts []CommentCountResult
-	if len(articleIDs) > 0 {
-		s.db.Model(&models.Comment{}).
-			Select("article_id, count(*) as count").
-			Where("article_id IN ?", articleIDs).
-			Group("article_id").
-				Scan(&commentCounts)
-	}
-
-	commentCountMap := make(map[uint]int64)
-	for _, cc := range commentCounts {
-		commentCountMap[cc.ArticleID] = cc.Count
-	}
-
 	responses := make([]models.ArticleResponse, len(articles))
 	for i, article := range articles {
+		categories := make([]models.CategoryInfo, len(article.Categories))
+		for j, cat := range article.Categories {
+			categories[j] = models.CategoryInfo{ID: cat.ID, Name: cat.Name}
+		}
 		responses[i] = models.ArticleResponse{
-			ID:           article.ID,
-			Title:        article.Title,
-			Content:      article.Content,
-			AuthorID:     article.AuthorID,
-			AuthorName:   article.Author.Username,
-			ViewCount:    article.ViewCount,
-			CommentCount: int(commentCountMap[article.ID]),
-			CreatedAt:    article.CreatedAt,
-			UpdatedAt:    article.UpdatedAt,
+			ID:         article.ID,
+			Title:      article.Title,
+			Content:    article.Content,
+			AuthorID:   article.AuthorID,
+			AuthorName: article.Author.Username,
+			ViewCount:  article.ViewCount,
+			Categories: categories,
+			CreatedAt:  article.CreatedAt,
+			UpdatedAt:  article.UpdatedAt,
 		}
 	}
 
@@ -172,8 +167,21 @@ func (s *ArticleService) UpdateArticle(id uint, req *UpdateArticleRequest, userI
 		return nil, fmt.Errorf("failed to update article: %w", err)
 	}
 
-	// Preload author
-	if err := s.db.Preload("Author").First(&article, article.ID).Error; err != nil {
+	// Update categories if provided
+	if req.CategoryIDs != nil {
+		var categories []models.Category
+		if len(req.CategoryIDs) > 0 {
+			if err := s.db.Where("id IN ?", req.CategoryIDs).Find(&categories).Error; err != nil {
+				return nil, fmt.Errorf("failed to find categories: %w", err)
+			}
+		}
+		if err := s.db.Model(&article).Association("Categories").Replace(categories); err != nil {
+			return nil, fmt.Errorf("failed to update categories: %w", err)
+		}
+	}
+
+	// Preload author and categories
+	if err := s.db.Preload("Author").Preload("Categories").First(&article, article.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to load article: %w", err)
 	}
 
@@ -196,10 +204,6 @@ func (s *ArticleService) DeleteArticle(id uint, userID uint) error {
 
 	if err := s.db.Delete(&article).Error; err != nil {
 		return fmt.Errorf("failed to delete article: %w", err)
-	}
-
-	if err := s.db.Where("article_id = ?", id).Delete(&models.Comment{}).Error; err != nil {
-		return fmt.Errorf("failed to delete comments: %w", err)
 	}
 
 	return nil
