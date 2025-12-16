@@ -1,248 +1,337 @@
-# 🎓 Portfolio Board Server
+# 📚 Portfolio Server - 게시판 API 서버
 
-> GoLang 기반 게시판 백엔드 서비스 - 커서 기반 무한 스크롤, 계층형 댓글, 재귀적 삭제 구현
-
-## 📋 프로젝트 개요
-
-이 프로젝트는 수행평가 요구사항에 따라 **기존 코드의 아쉬운 점을 개선**하고, **3가지 필수 심화 기술**을 모두 적용한 게시판 백엔드 서비스입니다.
-
-### 🎯 개선 목표 및 적용 기술
-
-#### **커서 기반 무한 스크롤 (Cursor-based Infinite Scroll)**
-
-- **개선 목표**: 기존 OFFSET 방식의 페이지네이션은 데이터가 많아질수록 성능이 저하되는 문제가 있습니다.
-- **적용 방법**: `last_id`를 활용한 커서 기반 페이지네이션으로 일관된 성능 보장
-- **구현 위치**:
-  - `internal/services/article_service.go` - `GetArticles()` 메서드
-  - `internal/services/comment_service.go` - `GetCommentsByArticle()` 메서드
-- **기술적 이점**:
-  - O(1) 시간 복잡도로 일관된 조회 성능
-  - 실시간 데이터 추가/삭제 시에도 중복/누락 없음
-  - 모바일 환경의 무한 스크롤 UX에 최적화
-  - 인덱스 활용으로 대용량 데이터에서도 빠른 조회
+> **Go + Gin + PostgreSQL + Docker**로 구축한 엔터프라이즈급 게시판 백엔드 서비스
 
 ---
 
-## 🏗️ 프로젝트 구조
+## 🎯 프로젝트 개요
+
+Portfolio Server는 단순한 CRUD 기능을 넘어 **실무 수준의 아키텍처 설계**를 적용한 게시판 API입니다.
+
+### 핵심 기능
+
+- ✅ **사용자 인증** (JWT 기반)
+- ✅ **게시글 관리** (CRUD + 커서 기반 페이지네이션)
+- ✅ **카테고리 관리** (Many-to-Many 관계)
+- ✅ **댓글 시스템** (게시글별 댓글)
+- ✅ **Swagger API 문서** (OpenAPI 기반)
+
+### 기술 스택
+
+- **언어**: Go 1.23
+- **웹 프레임워크**: Gin
+- **데이터베이스**: PostgreSQL 15
+- **ORM**: GORM
+- **인증**: JWT (golang-jwt/jwt/v5)
+- **컨테이너**: Docker & Docker Compose
+
+---
+
+## 🏗️ 아키텍처 설계
+
+### 계층 분리 (Separation of Concerns)
+
+```
+┌─────────────────────────────────────────┐
+│          HTTP Handler Layer             │  ← HTTP 요청/응답 처리
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│         Service Business Layer          │  ← 비즈니스 로직, 검증
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│      Database Access Layer (GORM)       │  ← 데이터 저장/조회
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│          Domain Models (GORM Tags)      │  ← 데이터 구조 정의
+└─────────────────────────────────────────┘
+```
+
+### 디렉토리 구조
 
 ```
 portfolio-server/
 ├── cmd/
-│   ├── server/          # 메인 서버 애플리케이션
-│   └── migrate/         # 데이터베이스 마이그레이션 도구
+│   └── server/main.go           # 애플리케이션 진입점
 ├── internal/
-│   ├── config/          # 설정 관리
-│   ├── database/        # 데이터베이스 연결 및 마이그레이션
-│   ├── models/          # 데이터 모델 (User, Article, Comment)
-│   ├── services/        # 비즈니스 로직
-│   ├── handlers/        # HTTP 핸들러
-│   ├── middleware/      # JWT, CORS, 에러 핸들링
-│   ├── errors/          # 커스텀 에러 정의
-│   ├── utils/           # 유틸리티 함수
-│   └── routes/          # 라우팅 설정
-├── docker-compose.yml   # Docker 구성
-├── Dockerfile          # 애플리케이션 이미지
-├── Makefile           # 빌드 및 실행 스크립트
-└── go.mod             # Go 모듈 의존성
+│   ├── config/config.go         # 환경설정 중앙 관리
+│   ├── database/database.go     # DB 연결 & 마이그레이션
+│   ├── errors/errors.go         # 구조화된 비즈니스 예외
+│   ├── handlers/                # HTTP 핸들러 계층
+│   ├── middleware/              # 미들웨어 (인증, 오류처리)
+│   ├── models/                  # GORM 도메인 모델
+│   ├── services/                # 비즈니스 로직 계층
+│   ├── utils/password.go        # bcrypt 기반 비밀번호 관리
+│   └── routes/routes.go         # 라우트 설정
+├── docs/
+│   ├── swagger.json             # OpenAPI 명세
+│   └── swagger.html             # Swagger UI
+├── docker-compose.yml           # 컨테이너 오케스트레이션
+├── Dockerfile                   # 멀티 스테이지 빌드
+├── go.mod                       # Go 모듈 정의
+└── IMPROVEMENTS.md              # 개선사항 상세 문서
 ```
 
 ---
 
-## 🚀 주요 기능
+## 🔧 개선된 아키텍처 패턴
 
-### ✅ 필수 구현 기능
+### 1️⃣ 중앙집중식 오류 처리 (Global Exception Handler)
 
-- [x] **회원가입/로그인** - JWT 기반 인증
-- [x] **게시글 CRUD** - 생성, 조회, 수정, 삭제
-- [x] **댓글 CRUD** - 댓글 시스템
-- [x] **권한 검증** - 작성자만 수정/삭제 가능
-- [x] **커서 기반 무한 스크롤** - 게시글 및 댓글 목록
+**목적**: 모든 오류가 일관된 JSON 형식으로 응답되도록 보장
 
-### 🎨 심화 기능
+#### 구조화된 예외 정의
 
-- [x] **커서 기반 페이지네이션** - OFFSET 대신 ID 기반 커서 사용
-- [x] **일관된 성능** - 데이터 증가에도 일정한 조회 속도
-- [x] **조회수 증가** - 게시글 조회 시 자동 카운팅
-- [x] **댓글 수 표시** - 게시글 목록에 댓글 수 포함
+```go
+type AppError struct {
+    Code    int    `json:"code"`
+    Message string `json:"message"`
+    Detail  string `json:"detail,omitempty"`
+}
+
+// 도메인별 예외 함수
+func ErrUserNotFound() *AppError
+func ErrArticleNotFound() *AppError
+func ErrPermissionDenied() *AppError
+```
+
+#### 전역 에러 핸들러
+
+```go
+func ErrorHandler() gin.HandlerFunc {
+    // 비즈니스 오류와 시스템 오류 자동 구분
+    // Panic 발생 시 500 응답으로 자동 변환
+}
+```
+
+**효과**:
+
+- ✅ 일관된 HTTP 응답 형식
+- ✅ 중앙 로깅으로 오류 추적 용이
+- ✅ 서버 안정성 증가
 
 ---
 
-## 📡 API 명세
+### 2️⃣ 외부 설정 관리 (Externalized Configuration)
 
-### 인증 (Authentication)
+**목적**: 환경별로 다른 설정을 관리
 
-| Method | Endpoint         | Description | Auth Required |
-| ------ | ---------------- | ----------- | ------------- |
-| POST   | `/auth/register` | 회원가입    | ❌            |
-| POST   | `/auth/login`    | 로그인      | ❌            |
-| GET    | `/auth/profile`  | 프로필 조회 | ✅            |
+#### 중앙집중식 설정
+
+```go
+func LoadConfig() *Config {
+    return &Config{
+        Database: DatabaseConfig{
+            Host:     getEnv("DB_HOST", "localhost"),
+            Port:     getEnv("DB_PORT", "5432"),
+            // ... 환경변수로 로드
+        },
+    }
+}
+```
+
+#### 환경변수 주입
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+JWT_SECRET=your-secret-key
+ENV=development
+```
+
+**효과**:
+
+- ✅ 환경별 설정 분리 (개발/테스트/운영)
+- ✅ 보안 강화 (민감정보를 코드에서 제거)
+- ✅ Docker 호환성 향상
+
+---
+
+### 3️⃣ 미들웨어 기반 코드 재사용 (Cross-Cutting Concerns)
+
+**목적**: 인증, 오류 처리, CORS를 미들웨어로 일원화
+
+#### 글로벌 미들웨어 적용
+
+```go
+router.Use(middleware.CORS())            // CORS 설정
+router.Use(middleware.RecoveryHandler()) // Panic 처리
+router.Use(middleware.ErrorHandler())    // 오류 처리
+
+// 선택적 인증 미들웨어
+articles.POST("", middleware.AuthMiddleware(), handler.CreateArticle)
+```
+
+**효과**:
+
+- ✅ 코드 중복 제거
+- ✅ 보안 정책 일원화
+- ✅ 유지보수성 향상
+
+---
+
+### 4️⃣ 서비스 계층 분리 (Separation of Concerns)
+
+**목적**: 비즈니스 로직을 서비스 계층에 집중
+
+#### 핸들러는 HTTP만 담당
+
+```go
+func (h *ArticleHandler) CreateArticle(c *gin.Context) {
+    var req services.CreateArticleRequest
+    c.ShouldBindJSON(&req)              // HTTP 바인딩
+
+    article, err := h.articleService.CreateArticle(...)  // 비즈니스 로직
+    c.JSON(http.StatusCreated, article)  // HTTP 응답
+}
+```
+
+#### 서비스는 비즈니스 로직 담당
+
+```go
+func (s *ArticleService) CreateArticle(req *CreateArticleRequest, authorID uint) (*Article, error) {
+    // 검증, 도메인 로직, 카테고리 연결 등
+    article := models.Article{...}
+    s.db.Create(&article)
+
+    // 복잡한 비즈니스 로직
+    if len(req.CategoryIDs) > 0 {
+        s.db.Model(&article).Association("Categories").Replace(categories)
+    }
+    return &article, nil
+}
+```
+
+**효과**:
+
+- ✅ 단위 테스트 용이
+- ✅ 로직 재사용 가능
+- ✅ 변경의 영향 범위 최소화
+
+---
+
+### 5️⃣ Many-to-Many 관계 설계 (Article-Category)
+
+**목적**: 하나의 글이 여러 카테고리를 가질 수 있음
+
+#### 카테고리 모델
+
+```go
+type Category struct {
+    ID       uint      `gorm:"primaryKey"`
+    Name     string    `gorm:"unique;not null"`
+    Articles []Article `gorm:"many2many:article_categories;"`
+}
+
+// 조인 테이블
+type ArticleCategory struct {
+    ArticleID  uint `gorm:"primaryKey"`
+    CategoryID uint `gorm:"primaryKey"`
+}
+```
+
+#### 서비스에서 관계 관리
+
+```go
+// 글 작성 시 카테고리 자동 연결
+if len(req.CategoryIDs) > 0 {
+    var categories []models.Category
+    s.db.Where("id IN ?", req.CategoryIDs).Find(&categories)
+    s.db.Model(&article).Association("Categories").Replace(categories)
+}
+```
+
+**효과**:
+
+- ✅ 정규화된 데이터 구조
+- ✅ 유연한 확장성
+- ✅ 쿼리 효율성
+
+---
+
+## 📡 API 엔드포인트
+
+### 인증 (Auth)
+
+| Method | Endpoint         | 설명        | 인증 |
+| ------ | ---------------- | ----------- | ---- |
+| POST   | `/auth/register` | 회원가입    | ❌   |
+| POST   | `/auth/login`    | 로그인      | ❌   |
+| GET    | `/auth/profile`  | 프로필 조회 | ✅   |
 
 ### 게시글 (Articles)
 
-| Method | Endpoint        | Description              | Auth Required |
-| ------ | --------------- | ------------------------ | ------------- |
-| GET    | `/articles`     | 게시글 목록 (무한스크롤) | ❌            |
-| GET    | `/articles/:id` | 게시글 상세 조회         | ❌            |
-| POST   | `/articles`     | 게시글 생성              | ✅            |
-| PUT    | `/articles/:id` | 게시글 수정              | ✅            |
-| DELETE | `/articles/:id` | 게시글 삭제              | ✅            |
+| Method | Endpoint        | 설명                | 인증 |
+| ------ | --------------- | ------------------- | ---- |
+| GET    | `/articles`     | 글 목록 (커서 기반) | ❌   |
+| GET    | `/articles/:id` | 글 상세 조회        | ❌   |
+| POST   | `/articles`     | 글 작성             | ✅   |
+| PUT    | `/articles/:id` | 글 수정             | ✅   |
+| DELETE | `/articles/:id` | 글 삭제             | ✅   |
 
 ### 댓글 (Comments)
 
-| Method | Endpoint                         | Description            | Auth Required |
-| ------ | -------------------------------- | ---------------------- | ------------- |
-| GET    | `/articles/:article_id/comments` | 댓글 목록 (무한스크롤) | ❌            |
-| POST   | `/comments`                      | 댓글 생성              | ✅            |
-| PUT    | `/comments/:id`                  | 댓글 수정              | ✅            |
-| DELETE | `/comments/:id`                  | 댓글 삭제              | ✅            |
+| Method | Endpoint                            | 설명      | 인증 |
+| ------ | ----------------------------------- | --------- | ---- |
+| GET    | `/articles/:id/comments`            | 댓글 목록 | ❌   |
+| POST   | `/articles/:id/comments`            | 댓글 작성 | ✅   |
+| PUT    | `/articles/:id/comments/:commentId` | 댓글 수정 | ✅   |
+| DELETE | `/articles/:id/comments/:commentId` | 댓글 삭제 | ✅   |
 
-### 🔍 커서 기반 무한 스크롤 사용 예시
+### 카테고리 (Categories)
 
-```bash
-# 첫 페이지 요청
-GET /articles?limit=20
-
-# 응답
-{
-  "articles": [...],
-  "next_cursor": 45,  # 마지막 게시글의 ID
-  "has_more": true
-}
-
-# 다음 페이지 요청
-GET /articles?last_id=45&limit=20
-```
+| Method | Endpoint          | 설명 | 인증 |
+| ------ | ----------------- | ---- | ---- |
+| GET    | `/categories`     | 목록 | ❌   |
+| GET    | `/categories/:id` | 상세 | ❌   |
+| POST   | `/categories`     | 생성 | ✅   |
+| PUT    | `/categories/:id` | 수정 | ✅   |
+| DELETE | `/categories/:id` | 삭제 | ✅   |
 
 ---
 
-## 🛠️ 로컬 실행 방법
+## 🚀 빠른 시작
 
-### 사전 요구사항
+### 전제 조건
 
-- Go 1.21 이상
-- Docker & Docker Compose (선택사항)
+- Docker & Docker Compose
+- Go 1.23+ (로컬 개발 시)
 
-### 1. Docker Compose로 실행 (권장)
+### Docker로 실행
 
 ```bash
-# .env 파일 생성
-cp .env.example .env
+# 저장소 클론
+git clone <repository-url>
+cd portfolio-server
 
 # Docker Compose로 실행
 docker-compose up -d
 
-# 로그 확인
-docker-compose logs -f app
+# 서버 확인
+curl http://localhost:8080/health
+
+# Swagger 문서
+open http://localhost:8080/swagger
 ```
 
-서버가 `http://localhost:8080`에서 실행됩니다.
-
-### 2. 로컬 환경에서 실행
+### 로컬 개발 환경
 
 ```bash
 # 의존성 설치
 go mod download
 
-# PostgreSQL 실행 (Docker)
-docker-compose up -d postgres
-
-# .env 파일 생성 및 수정
+# 환경 설정
 cp .env.example .env
 
-# 데이터베이스 마이그레이션
-make migrate
-# 또는
-go run cmd/migrate/main.go
+# PostgreSQL 실행 (Docker)
+docker run --name postgres -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=portfolio_db -p 5432:5432 -d postgres:15-alpine
 
-# 서버 실행
-make run
-# 또는
+# 애플리케이션 실행
 go run cmd/server/main.go
 ```
-
-### 3. Makefile 명령어
-
-```bash
-make help           # 사용 가능한 명령어 목록
-make build          # 빌드
-make run            # 실행
-make test           # 테스트
-make docker-up      # Docker 시작
-make docker-down    # Docker 종료
-make migrate        # 마이그레이션
-```
-
----
-
-## 🗄️ 데이터베이스 스키마
-
-### Users
-
-```sql
-id, email, username, password, created_at, updated_at, deleted_at
-```
-
-### Articles
-
-```sql
-id, title, content, author_id, view_count, created_at, updated_at, deleted_at
-```
-
-### Comments
-
-```sql
-id, article_id, author_id, content, created_at, updated_at, deleted_at
-```
-
----
-
-## 🧪 테스트
-
-```bash
-# 모든 테스트 실행
-make test
-
-# 커버리지 포함
-make test-coverage
-```
-
----
-
-## 📦 배포
-
-### Docker 이미지 빌드
-
-```bash
-docker build -t portfolio-server .
-```
-
-### 환경 변수 설정
-
-프로덕션 환경에서는 다음 환경 변수를 설정해야 합니다:
-
-```env
-DB_HOST=your-db-host
-DB_PORT=5432
-DB_USER=your-db-user
-DB_PASSWORD=your-db-password
-DB_NAME=your-db-name
-JWT_SECRET=your-strong-secret-key
-ENV=production
-```
-
----
-
-## 🔐 인증 방식
-
-JWT (JSON Web Token) 기반 인증을 사용합니다.
-
-**요청 헤더**:
-
-```
-Authorization: Bearer <your-jwt-token>
-```
-
-**토큰 유효기간**: 24시간 (설정 변경 가능)
 
 ---
 
@@ -255,7 +344,7 @@ curl -X POST http://localhost:8080/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "username": "testuser",
+    "username": "username",
     "password": "password123"
   }'
 ```
@@ -269,89 +358,136 @@ curl -X POST http://localhost:8080/auth/login \
     "email": "user@example.com",
     "password": "password123"
   }'
+
+# 응답: {"token": "eyJhbGc...", "user": {...}}
 ```
 
-### 3. 게시글 작성
+### 3. 글 작성 (인증 필요)
 
 ```bash
 curl -X POST http://localhost:8080/articles \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer eyJhbGc..." \
   -d '{
-    "title": "제목",
-    "content": "내용"
+    "title": "Go 언어 배우기",
+    "content": "Go 언어는 동시성 처리에 강합니다...",
+    "category_ids": [1, 2]
   }'
 ```
 
-### 4. 게시글 목록 조회 (무한 스크롤)
+### 4. 글 목록 조회 (커서 기반 페이지네이션)
 
 ```bash
-# 첫 페이지
-curl http://localhost:8080/articles?limit=20
+# 처음 조회
+curl "http://localhost:8080/articles?limit=20"
 
 # 다음 페이지
-curl http://localhost:8080/articles?last_id=45&limit=20
+curl "http://localhost:8080/articles?limit=20&last_id=4"
 ```
 
 ### 5. 댓글 작성
 
 ```bash
-curl -X POST http://localhost:8080/comments \
+curl -X POST http://localhost:8080/articles/5/comments \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "article_id": 1,
-    "content": "댓글 내용"
-  }'
+  -H "Authorization: Bearer eyJhbGc..." \
+  -d '{"content": "좋은 글이네요!"}'
 ```
 
 ---
 
-## 🎯 핵심 구현 사항
+## 🔐 보안 기능
 
-### 커서 기반 무한 스크롤
+### JWT 기반 인증
 
-**게시글 목록**
+- 토큰 만료 시간: 기본 24시간 (환경변수로 변경 가능)
+- Bearer 토큰 방식: `Authorization: Bearer <token>`
 
-- **위치**: `internal/services/article_service.go` - `GetArticles()` 메서드
-- **핵심 로직**: `WHERE id < last_id ORDER BY id DESC LIMIT n+1`
-- **장점**: 일관된 성능, 데이터 중복/누락 방지
+### 비밀번호 보안
 
-**댓글 목록**
+- bcrypt 알고리즘 (cost: 10)
+- 평문 비밀번호는 저장 불가
 
-- **위치**: `internal/services/comment_service.go` - `GetCommentsByArticle()` 메서드
-- **핵심 로직**: `WHERE article_id = ? AND id < last_id ORDER BY id DESC LIMIT n+1`
-- **장점**: 대량의 댓글에서도 빠른 조회 성능
+### 권한 검증
 
----
-
-## 📚 기술 스택
-
-- **언어**: Go 1.21
-- **웹 프레임워크**: Gin
-- **ORM**: GORM
-- **데이터베이스**: PostgreSQL 15
-- **인증**: JWT (golang-jwt/jwt)
-- **컨테이너**: Docker & Docker Compose
+- 글/댓글 수정/삭제는 작성자만 가능
 
 ---
 
-## 👨‍💻 개발자
+## 📊 데이터베이스 스키마
 
-- **이름**: [권민재]
-- **GitHub**: [@kwonminjae5700](https://github.com/kwonminjae5700)
+### Many-to-Many 관계 (Article-Category)
+
+```
+┌─────────────┐         ┌──────────────────┐         ┌──────────────┐
+│   Article   │◄───────►│ ArticleCategory  │◄───────►│  Category    │
+│             │ 1    N  │  (조인 테이블)   │  N    1 │              │
+└─────────────┘         └──────────────────┘         └──────────────┘
+```
 
 ---
 
-## 📄 라이선스
+## 🐳 Docker 배포
 
-MIT License
+### 멀티 스테이지 빌드
+
+- 빌드 스테이지: golang:1.23-alpine
+- 최종 이미지: alpine:latest
+- 최종 크기: ~50MB
+
+### 환경별 배포
+
+```bash
+# 개발 환경
+docker-compose up
+
+# 운영 환경
+ENV=production docker-compose up -d
+```
 
 ---
 
-## 🙏 참고 자료
+## 📈 성능 최적화
 
-- [Gin Web Framework](https://gin-gonic.com/)
-- [GORM Documentation](https://gorm.io/)
-- [JWT Best Practices](https://datatracker.ietf.org/doc/html/rfc8725)
-- [Cursor-based Pagination](https://www.sitepoint.com/paginating-real-time-data-cursor-based-pagination/)
+### 커서 기반 페이지네이션
+
+- O(1) 시간복잡도
+- 실시간 데이터 변화에 안전
+
+### N+1 쿼리 방지
+
+```go
+s.db.Preload("Author").Preload("Categories").Find(&articles)
+```
+
+### 인덱싱
+
+- author_id INDEX
+- email UNIQUE INDEX
+- username UNIQUE INDEX
+
+---
+
+## 🔄 개선 이력
+
+- ✅ **중앙집중식 오류 처리** - Global Exception Handler 구현
+- ✅ **외부 설정 관리** - 환경변수 기반 설정 분리
+- ✅ **미들웨어 기반 재사용** - 인증, 오류 처리, CORS 통일
+- ✅ **서비스 계층 분리** - 비즈니스 로직 독립화
+- ✅ **Many-to-Many 관계** - 글-카테고리 유연한 관계 설계
+- ✅ **API 문서화** - Swagger UI 제공
+- ✅ **Docker 배포** - 멀티 스테이지 빌드로 최적화
+
+**자세한 내용**: [IMPROVEMENTS.md](./IMPROVEMENTS.md) 참조
+
+---
+
+## 📚 추가 정보
+
+- [프로젝트 개선사항 상세 분석](./IMPROVEMENTS.md)
+- Swagger UI: http://localhost:8080/swagger
+- API 명세: http://localhost:8080/docs/swagger.json
+
+---
+
+**마지막 업데이트**: 2025년 12월 16일
