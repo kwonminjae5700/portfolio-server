@@ -208,3 +208,21 @@ func (s *ArticleService) DeleteArticle(id uint, userID uint) error {
 
 	return nil
 }
+
+func (s *ArticleService) GetTopArticlesByViewCount() ([]models.TopArticleInfo, error) {
+	var articles []models.Article
+	if err := s.db.Order("view_count DESC").Limit(5).Find(&articles).Error; err != nil {
+		return nil, fmt.Errorf("failed to get top articles: %w", err)
+	}
+
+	topArticles := make([]models.TopArticleInfo, len(articles))
+	for i, article := range articles {
+		topArticles[i] = models.TopArticleInfo{
+			ID:        article.ID,
+			Title:     article.Title,
+			ViewCount: article.ViewCount,
+		}
+	}
+
+	return topArticles, nil
+}

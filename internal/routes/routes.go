@@ -27,6 +27,9 @@ func SetupRoutes(router *gin.Engine) {
 	commentHandler := handlers.NewCommentHandler()
 	articles := router.Group("/articles")
 	{
+		// Static routes must come before dynamic routes
+		articles.GET("/top/views", articleHandler.GetTopArticles)
+		
 		articles.GET("", articleHandler.GetArticles)
 		articles.GET("/:id", articleHandler.GetArticle)
 		articles.POST("", middleware.AuthMiddleware(), articleHandler.CreateArticle)

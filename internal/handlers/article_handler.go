@@ -224,3 +224,21 @@ func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+func (h *ArticleHandler) GetTopArticles(c *gin.Context) {
+	// @Summary 조회수 TOP 5 글
+	// @Description 조회수가 가장 높은 5개의 글을 반환합니다
+	// @Tags articles
+	// @Accept json
+	// @Produce json
+	// @Success 200 {object} []models.TopArticleInfo
+	// @Failure 500 {object} map[string]interface{}
+	// @Router /articles/top/views [get]
+	articles, err := h.articleService.GetTopArticlesByViewCount()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, articles)
+}

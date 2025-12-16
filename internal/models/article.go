@@ -46,3 +46,9 @@ type ArticleListResponse struct {
 	NextCursor *uint             `json:"next_cursor"`
 	HasMore    bool              `json:"has_more"`
 }
+
+type TopArticleInfo struct {
+	ID        uint   `json:"id"`
+	Title     string `json:"title"`
+	ViewCount int    `json:"view_count"`
+}

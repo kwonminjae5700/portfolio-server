@@ -184,6 +184,33 @@
         }
       }
     },
+    "/articles/top/views": {
+      "get": {
+        "summary": "조회수 TOP 5 글",
+        "description": "조회수가 가장 높은 5개의 글을 반환합니다",
+        "tags": ["articles"],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "integer"},
+                  "title": {"type": "string"},
+                  "view_count": {"type": "integer"}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 오류"
+          }
+        }
+      }
+    },
     "/articles/{id}": {
       "get": {
         "summary": "글 상세 조회",
