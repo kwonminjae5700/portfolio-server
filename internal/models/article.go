@@ -16,24 +16,29 @@ type Article struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Author   User      `gorm:"foreignKey:AuthorID" json:"author"`
-	Comments []Comment `gorm:"foreignKey:ArticleID" json:"-"`
+	Author     User       `gorm:"foreignKey:AuthorID" json:"author"`
+	Categories []Category `gorm:"many2many:article_categories;" json:"-"`
 }
 
 func (Article) TableName() string {
 	return "articles"
 }
 
+type CategoryInfo struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
 type ArticleResponse struct {
-	ID           uint      `json:"id"`
-	Title        string    `json:"title"`
-	Content      string    `json:"content"`
-	AuthorID     uint      `json:"author_id"`
-	AuthorName   string    `json:"author_name"`
-	ViewCount    int       `json:"view_count"`
-	CommentCount int       `json:"comment_count"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID         uint           `json:"id"`
+	Title      string         `json:"title"`
+	Content    string         `json:"content"`
+	AuthorID   uint           `json:"author_id"`
+	AuthorName string         `json:"author_name"`
+	ViewCount  int            `json:"view_count"`
+	Categories []CategoryInfo `json:"categories"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 type ArticleListResponse struct {

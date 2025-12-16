@@ -16,7 +16,6 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	Articles []Article `gorm:"foreignKey:AuthorID" json:"-"`
-	Comments []Comment `gorm:"foreignKey:AuthorID" json:"-"`
 }
 
 func (User) TableName() string {
