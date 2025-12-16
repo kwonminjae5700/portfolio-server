@@ -20,6 +20,17 @@ func NewArticleHandler() *ArticleHandler {
 }
 
 func (h *ArticleHandler) CreateArticle(c *gin.Context) {
+	// @Summary 글 작성
+	// @Description 새로운 게시글을 작성합니다
+	// @Tags articles
+	// @Accept json
+	// @Produce json
+	// @Security Bearer
+	// @Param request body services.CreateArticleRequest true "글 작성 요청"
+	// @Success 201 {object} models.Article
+	// @Failure 400 {object} map[string]interface{}
+	// @Failure 401 {object} map[string]interface{}
+	// @Router /articles [post]
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
 		c.Error(err)
@@ -46,6 +57,16 @@ func (h *ArticleHandler) CreateArticle(c *gin.Context) {
 }
 
 func (h *ArticleHandler) GetArticle(c *gin.Context) {
+	// @Summary 글 상세 조회
+	// @Description 특정 게시글의 상세 정보를 조회합니다
+	// @Tags articles
+	// @Accept json
+	// @Produce json
+	// @Param id path uint true "글 ID"
+	// @Success 200 {object} models.ArticleResponse
+	// @Failure 400 {object} map[string]interface{}
+	// @Failure 404 {object} map[string]interface{}
+	// @Router /articles/{id} [get]
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -67,6 +88,16 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 }
 
 func (h *ArticleHandler) GetArticles(c *gin.Context) {
+	// @Summary 글 목록 조회
+	// @Description 커서 기반 무한 스크롤로 게시글 목록을 조회합니다
+	// @Tags articles
+	// @Accept json
+	// @Produce json
+	// @Param last_id query uint false "마지막 글 ID"
+	// @Param limit query int false "조회할 개수 (기본값: 20)"
+	// @Success 200 {object} models.ArticleListResponse
+	// @Failure 400 {object} map[string]interface{}
+	// @Router /articles [get]
 	lastIDStr := c.Query("last_id")
 	limitStr := c.DefaultQuery("limit", "20")
 
@@ -105,6 +136,20 @@ func (h *ArticleHandler) GetArticles(c *gin.Context) {
 }
 
 func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
+	// @Summary 글 수정
+	// @Description 자신의 게시글을 수정합니다
+	// @Tags articles
+	// @Accept json
+	// @Produce json
+	// @Security Bearer
+	// @Param id path uint true "글 ID"
+	// @Param request body services.UpdateArticleRequest true "글 수정 요청"
+	// @Success 200 {object} models.Article
+	// @Failure 400 {object} map[string]interface{}
+	// @Failure 401 {object} map[string]interface{}
+	// @Failure 403 {object} map[string]interface{}
+	// @Failure 404 {object} map[string]interface{}
+	// @Router /articles/{id} [put]
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
 		c.Error(err)
@@ -142,6 +187,19 @@ func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
 }
 
 func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
+	// @Summary 글 삭제
+	// @Description 자신의 게시글을 삭제합니다
+	// @Tags articles
+	// @Accept json
+	// @Produce json
+	// @Security Bearer
+	// @Param id path uint true "글 ID"
+	// @Success 204
+	// @Failure 400 {object} map[string]interface{}
+	// @Failure 401 {object} map[string]interface{}
+	// @Failure 403 {object} map[string]interface{}
+	// @Failure 404 {object} map[string]interface{}
+	// @Router /articles/{id} [delete]
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
 		c.Error(err)

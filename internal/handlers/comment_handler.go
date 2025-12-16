@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"portfolio-server/internal/middleware"
 	"portfolio-server/internal/services"
 	"strconv"
 
@@ -20,9 +19,14 @@ func NewCommentHandler() *CommentHandler {
 }
 
 func (h *CommentHandler) CreateComment(c *gin.Context) {
-	userID, err := middleware.GetUserIDFromContext(c)
+	articleIDStr := c.Param("id")
+	articleID, err := strconv.ParseUint(articleIDStr, 10, 32)
 	if err != nil {
-		c.Error(err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "Invalid article ID",
+			"detail":  err.Error(),
+		})
 		return
 	}
 
@@ -36,7 +40,8 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 		return
 	}
 
-	comment, err := h.commentService.CreateComment(&req, userID)
+	userID := c.GetUint("user_id")
+	comment, err := h.commentService.CreateComment(uint(articleID), &req, userID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -45,8 +50,8 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 	c.JSON(http.StatusCreated, comment)
 }
 
-func (h *CommentHandler) GetCommentsByArticle(c *gin.Context) {
-	articleIDStr := c.Param("article_id")
+func (h *CommentHandler) GetComments(c *gin.Context) {
+	articleIDStr := c.Param("id")
 	articleID, err := strconv.ParseUint(articleIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -57,35 +62,22 @@ func (h *CommentHandler) GetCommentsByArticle(c *gin.Context) {
 		return
 	}
 
-	lastIDStr := c.Query("last_id")
-	limitStr := c.DefaultQuery("limit", "50")
-
 	var lastID *uint
-	if lastIDStr != "" {
-		id, err := strconv.ParseUint(lastIDStr, 10, 32)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    http.StatusBadRequest,
-				"message": "Invalid last_id parameter",
-				"detail":  err.Error(),
-			})
-			return
+	if lastIDStr := c.Query("last_id"); lastIDStr != "" {
+		if id, err := strconv.ParseUint(lastIDStr, 10, 32); err == nil {
+			uid := uint(id)
+			lastID = &uid
 		}
-		lastIDUint := uint(id)
-		lastID = &lastIDUint
 	}
 
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    http.StatusBadRequest,
-			"message": "Invalid limit parameter",
-			"detail":  err.Error(),
-		})
-		return
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil {
+			limit = l
+		}
 	}
 
-	comments, err := h.commentService.GetCommentsByArticle(uint(articleID), lastID, limit)
+	comments, err := h.commentService.GetCommentsByArticleID(uint(articleID), lastID, limit)
 	if err != nil {
 		c.Error(err)
 		return
@@ -95,14 +87,8 @@ func (h *CommentHandler) GetCommentsByArticle(c *gin.Context) {
 }
 
 func (h *CommentHandler) UpdateComment(c *gin.Context) {
-	userID, err := middleware.GetUserIDFromContext(c)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	commentIDStr := c.Param("commentId")
+	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -122,7 +108,8 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
-	comment, err := h.commentService.UpdateComment(uint(id), &req, userID)
+	userID := c.GetUint("user_id")
+	comment, err := h.commentService.UpdateComment(uint(commentID), &req, userID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -132,14 +119,8 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 }
 
 func (h *CommentHandler) DeleteComment(c *gin.Context) {
-	userID, err := middleware.GetUserIDFromContext(c)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	commentIDStr := c.Param("commentId")
+	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -149,10 +130,11 @@ func (h *CommentHandler) DeleteComment(c *gin.Context) {
 		return
 	}
 
-	if err := h.commentService.DeleteComment(uint(id), userID); err != nil {
+	userID := c.GetUint("user_id")
+	if err := h.commentService.DeleteComment(uint(commentID), userID); err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusNoContent, nil)
 }
