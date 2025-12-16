@@ -41,7 +41,9 @@ func InitDatabase(cfg *config.Config) error {
 func AutoMigrate() error {
 	err := DB.AutoMigrate(
 		&models.User{},
+		&models.Category{},
 		&models.Article{},
+		&models.ArticleCategory{},
 		&models.Comment{},
 	)
 	if err != nil {
