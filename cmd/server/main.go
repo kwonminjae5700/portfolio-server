@@ -17,6 +17,10 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	if err := database.InitRedis(cfg); err != nil {
+		log.Fatalf("Failed to initialize Redis: %v", err)
+	}
+
 	if err := database.AutoMigrate(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}

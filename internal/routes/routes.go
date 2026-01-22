@@ -18,6 +18,8 @@ func SetupRoutes(router *gin.Engine) {
 	authHandler := handlers.NewAuthHandler()
 	auth := router.Group("/auth")
 	{
+		auth.POST("/send-verification-code", authHandler.SendVerificationCode)
+		auth.POST("/verify-code", authHandler.VerifyCode)
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.GET("/profile", middleware.AuthMiddleware(), authHandler.GetProfile)

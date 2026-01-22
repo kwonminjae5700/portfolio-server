@@ -33,7 +33,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -63,7 +63,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -101,4 +101,65 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func (h *AuthHandler) SendVerificationCode(c *gin.Context) {
+	// @Summary 이메일 인증 코드 전송
+	// @Description 회원가입을 위한 이메일 인증 코드를 전송합니다
+	// @Tags auth
+	// @Accept json
+	// @Produce json
+	// @Param request body services.SendVerificationCodeRequest true "인증 코드 전송 요청"
+	// @Success 200 {object} map[string]interface{}
+	// @Failure 400 {object} map[string]interface{}
+	// @Failure 409 {object} map[string]interface{}
+	// @Router /auth/send-verification-code [post]
+	var req services.SendVerificationCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "요청 형식이 올바르지 않습니다",
+			"detail":  err.Error(),
+		})
+		return
+	}
+
+	if err := h.authService.SendVerificationCode(req.Email); err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "인증 코드가 성공적으로 전송되었습니다",
+	})
+}
+
+func (h *AuthHandler) VerifyCode(c *gin.Context) {
+	// @Summary 이메일 인증 코드 검증
+	// @Description 이메일로 전송된 인증 코드를 검증합니다
+	// @Tags auth
+	// @Accept json
+	// @Produce json
+	// @Param request body services.VerifyCodeRequest true "인증 코드 검증 요청"
+	// @Success 200 {object} map[string]interface{}
+	// @Failure 400 {object} map[string]interface{}
+	// @Router /auth/verify-code [post]
+	var req services.VerifyCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "요청 형식이 올바르지 않습니다",
+			"detail":  err.Error(),
+		})
+		return
+	}
+
+	if err := h.authService.VerifyCode(req.Email, req.Code); err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "이메일 인증이 완료되었습니다",
+	})
 }

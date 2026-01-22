@@ -45,6 +45,7 @@ func AutoMigrate() error {
 		&models.Article{},
 		&models.ArticleCategory{},
 		&models.Comment{},
+		&models.VerificationCode{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
