@@ -39,17 +39,17 @@ func (s *ArticleService) CreateArticle(req *CreateArticleRequest, authorID uint)
 	}
 
 	if err := s.db.Create(&article).Error; err != nil {
-		return nil, fmt.Errorf("failed to create article: %w", err)
+		return nil, fmt.Errorf("게시글 생성 실패: %w", err)
 	}
 
 	// Add categories if provided
 	if len(req.CategoryIDs) > 0 {
 		var categories []models.Category
 		if err := s.db.Where("id IN ?", req.CategoryIDs).Find(&categories).Error; err != nil {
-			return nil, fmt.Errorf("failed to find categories: %w", err)
+			return nil, fmt.Errorf("카테고리 조회 실패: %w", err)
 		}
 		if err := s.db.Model(&article).Association("Categories").Replace(categories); err != nil {
-			return nil, fmt.Errorf("failed to associate categories: %w", err)
+			return nil, fmt.Errorf("카테고리 연결 실패: %w", err)
 		}
 	}
 
@@ -66,7 +66,7 @@ func (s *ArticleService) GetArticleByID(id uint) (*models.ArticleResponse, error
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrArticleNotFound()
 		}
-		return nil, fmt.Errorf("failed to get article: %w", err)
+		return nil, fmt.Errorf("게시글 조회 실패: %w", err)
 	}
 
 	s.db.Model(&article).Update("view_count", gorm.Expr("view_count + ?", 1))
@@ -107,7 +107,7 @@ func (s *ArticleService) GetArticles(lastID *uint, limit int) (*models.ArticleLi
 
 	var articles []models.Article
 	if err := query.Find(&articles).Error; err != nil {
-		return nil, fmt.Errorf("failed to get articles: %w", err)
+		return nil, fmt.Errorf("게시글 목록 조회 실패: %w", err)
 	}
 
 	hasMore := len(articles) > limit
@@ -153,7 +153,7 @@ func (s *ArticleService) UpdateArticle(id uint, req *UpdateArticleRequest, userI
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrArticleNotFound()
 		}
-		return nil, fmt.Errorf("failed to get article: %w", err)
+		return nil, fmt.Errorf("게시글 조회 실패: %w", err)
 	}
 
 	if article.AuthorID != userID {
@@ -164,7 +164,7 @@ func (s *ArticleService) UpdateArticle(id uint, req *UpdateArticleRequest, userI
 	article.Content = req.Content
 
 	if err := s.db.Save(&article).Error; err != nil {
-		return nil, fmt.Errorf("failed to update article: %w", err)
+		return nil, fmt.Errorf("게시글 수정 실패: %w", err)
 	}
 
 	// Update categories if provided
@@ -172,17 +172,17 @@ func (s *ArticleService) UpdateArticle(id uint, req *UpdateArticleRequest, userI
 		var categories []models.Category
 		if len(req.CategoryIDs) > 0 {
 			if err := s.db.Where("id IN ?", req.CategoryIDs).Find(&categories).Error; err != nil {
-				return nil, fmt.Errorf("failed to find categories: %w", err)
+				return nil, fmt.Errorf("카테고리 조회 실패: %w", err)
 			}
 		}
 		if err := s.db.Model(&article).Association("Categories").Replace(categories); err != nil {
-			return nil, fmt.Errorf("failed to update categories: %w", err)
+			return nil, fmt.Errorf("카테고리 수정 실패: %w", err)
 		}
 	}
 
 	// Preload author and categories
 	if err := s.db.Preload("Author").Preload("Categories").First(&article, article.ID).Error; err != nil {
-		return nil, fmt.Errorf("failed to load article: %w", err)
+		return nil, fmt.Errorf("게시글 로드 실패: %w", err)
 	}
 
 	return &article, nil
@@ -194,7 +194,7 @@ func (s *ArticleService) DeleteArticle(id uint, userID uint) error {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrArticleNotFound()
 		}
-		return fmt.Errorf("failed to get article: %w", err)
+		return fmt.Errorf("게시글 조회 실패: %w", err)
 	}
 
 	// Check if user is the author
@@ -203,7 +203,7 @@ func (s *ArticleService) DeleteArticle(id uint, userID uint) error {
 	}
 
 	if err := s.db.Delete(&article).Error; err != nil {
-		return fmt.Errorf("failed to delete article: %w", err)
+		return fmt.Errorf("게시글 삭제 실패: %w", err)
 	}
 
 	return nil
@@ -212,7 +212,7 @@ func (s *ArticleService) DeleteArticle(id uint, userID uint) error {
 func (s *ArticleService) GetTopArticlesByViewCount() ([]models.TopArticleInfo, error) {
 	var articles []models.Article
 	if err := s.db.Order("view_count DESC").Limit(5).Find(&articles).Error; err != nil {
-		return nil, fmt.Errorf("failed to get top articles: %w", err)
+		return nil, fmt.Errorf("인기 게시글 조회 실패: %w", err)
 	}
 
 	topArticles := make([]models.TopArticleInfo, len(articles))

@@ -79,7 +79,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authorization header is required",
+				"error": "인증 헤더가 필요합니다",
 			})
 			c.Abort()
 			return
@@ -88,7 +88,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid authorization header format",
+				"error": "인증 헤더 형식이 올바르지 않습니다",
 			})
 			c.Abort()
 			return
@@ -98,7 +98,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		claims, err := ValidateToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid or expired token",
+				"error": "토큰이 유효하지 않거나 만료되었습니다",
 			})
 			c.Abort()
 			return

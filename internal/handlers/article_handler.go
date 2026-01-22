@@ -41,7 +41,7 @@ func (h *ArticleHandler) CreateArticle(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -107,7 +107,7 @@ func (h *ArticleHandler) GetArticles(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    http.StatusBadRequest,
-				"message": "Invalid last_id parameter",
+				"message": "last_id 파라미터가 올바르지 않습니다",
 				"detail":  err.Error(),
 			})
 			return
@@ -120,7 +120,7 @@ func (h *ArticleHandler) GetArticles(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid limit parameter",
+			"message": "limit 파라미터가 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -161,7 +161,7 @@ func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid article ID",
+			"message": "게시글 ID가 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -171,7 +171,7 @@ func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return

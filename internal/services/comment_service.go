@@ -34,7 +34,7 @@ func (s *CommentService) CreateComment(articleID uint, req *CreateCommentRequest
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrArticleNotFound()
 		}
-		return nil, fmt.Errorf("failed to find article: %w", err)
+		return nil, fmt.Errorf("게시글 조회 실패: %w", err)
 	}
 
 	comment := models.Comment{
@@ -44,12 +44,12 @@ func (s *CommentService) CreateComment(articleID uint, req *CreateCommentRequest
 	}
 
 	if err := s.db.Create(&comment).Error; err != nil {
-		return nil, fmt.Errorf("failed to create comment: %w", err)
+		return nil, fmt.Errorf("댓글 생성 실패: %w", err)
 	}
 
 	// Load author
 	if err := s.db.Preload("Author").First(&comment, comment.ID).Error; err != nil {
-		return nil, fmt.Errorf("failed to load comment: %w", err)
+		return nil, fmt.Errorf("댓글 로드 실패: %w", err)
 	}
 
 	return &models.CommentResponse{
@@ -70,7 +70,7 @@ func (s *CommentService) GetCommentsByArticleID(articleID uint, lastID *uint, li
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrArticleNotFound()
 		}
-		return nil, fmt.Errorf("failed to find article: %w", err)
+		return nil, fmt.Errorf("게시글 조회 실패: %w", err)
 	}
 
 	if limit <= 0 || limit > 50 {
@@ -89,7 +89,7 @@ func (s *CommentService) GetCommentsByArticleID(articleID uint, lastID *uint, li
 
 	var comments []models.Comment
 	if err := query.Find(&comments).Error; err != nil {
-		return nil, fmt.Errorf("failed to get comments: %w", err)
+		return nil, fmt.Errorf("댓글 목록 조회 실패: %w", err)
 	}
 
 	hasMore := len(comments) > limit
@@ -129,7 +129,7 @@ func (s *CommentService) UpdateComment(commentID uint, req *UpdateCommentRequest
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.ErrCommentNotFound()
 		}
-		return nil, fmt.Errorf("failed to get comment: %w", err)
+		return nil, fmt.Errorf("댓글 조회 실패: %w", err)
 	}
 
 	if comment.AuthorID != userID {
@@ -139,12 +139,12 @@ func (s *CommentService) UpdateComment(commentID uint, req *UpdateCommentRequest
 	comment.Content = req.Content
 
 	if err := s.db.Save(&comment).Error; err != nil {
-		return nil, fmt.Errorf("failed to update comment: %w", err)
+		return nil, fmt.Errorf("댓글 수정 실패: %w", err)
 	}
 
 	// Load author
 	if err := s.db.Preload("Author").First(&comment, comment.ID).Error; err != nil {
-		return nil, fmt.Errorf("failed to load comment: %w", err)
+		return nil, fmt.Errorf("댓글 로드 실패: %w", err)
 	}
 
 	return &models.CommentResponse{
@@ -164,7 +164,7 @@ func (s *CommentService) DeleteComment(commentID uint, userID uint) error {
 		if err == gorm.ErrRecordNotFound {
 			return errors.ErrCommentNotFound()
 		}
-		return fmt.Errorf("failed to get comment: %w", err)
+		return fmt.Errorf("댓글 조회 실패: %w", err)
 	}
 
 	if comment.AuthorID != userID {
@@ -172,7 +172,7 @@ func (s *CommentService) DeleteComment(commentID uint, userID uint) error {
 	}
 
 	if err := s.db.Delete(&comment).Error; err != nil {
-		return fmt.Errorf("failed to delete comment: %w", err)
+		return fmt.Errorf("댓글 삭제 실패: %w", err)
 	}
 
 	return nil

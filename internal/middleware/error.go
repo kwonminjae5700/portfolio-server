@@ -33,8 +33,8 @@ func ErrorHandler() gin.HandlerFunc {
 			log.Printf("Unhandled error: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{
 				Code:    http.StatusInternalServerError,
-				Message: "Internal Server Error",
-				Detail:  "An unexpected error occurred",
+				Message: "서버 오류가 발생했습니다",
+				Detail:  "예상치 못한 오류가 발생했습니다",
 			})
 		}
 	}
@@ -47,8 +47,8 @@ func RecoveryHandler() gin.HandlerFunc {
 				log.Printf("Panic recovered: %v", err)
 				c.JSON(http.StatusInternalServerError, ErrorResponse{
 					Code:    http.StatusInternalServerError,
-					Message: "Internal Server Error",
-					Detail:  "A critical error occurred",
+					Message: "서버 오류가 발생했습니다",
+					Detail:  "심각한 오류가 발생했습니다",
 				})
 				c.Abort()
 			}

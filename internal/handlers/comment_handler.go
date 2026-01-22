@@ -24,7 +24,7 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid article ID",
+			"message": "게시글 ID가 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -34,7 +34,7 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -92,7 +92,7 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid comment ID",
+			"message": "댓글 ID가 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -102,7 +102,7 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return

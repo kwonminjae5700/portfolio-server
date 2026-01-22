@@ -23,7 +23,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -75,7 +75,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid category ID",
+			"message": "카테고리 ID가 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
@@ -85,7 +85,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
-			"message": "Invalid request body",
+			"message": "요청 형식이 올바르지 않습니다",
 			"detail":  err.Error(),
 		})
 		return
