@@ -50,6 +50,12 @@ services:
       # Redis Configuration
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      # MinIO Configuration
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-true}
     ports:
       - "8080:8080"
     depends_on:

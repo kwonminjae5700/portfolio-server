@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"portfolio-server/internal/services"
 
@@ -67,8 +68,10 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 	// 업로드 처리
 	result, err := h.uploadService.UploadImage(c.Request.Context(), file)
 	if err != nil {
+		log.Printf("Upload error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "이미지 업로드에 실패했습니다",
+			"details": err.Error(),
 		})
 		return
 	}
@@ -101,8 +104,10 @@ func (h *UploadHandler) DeleteImage(c *gin.Context) {
 
 	err := h.uploadService.DeleteImage(c.Request.Context(), fileName)
 	if err != nil {
+		log.Printf("Delete error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "이미지 삭제에 실패했습니다",
+			"details": err.Error(),
 		})
 		return
 	}
