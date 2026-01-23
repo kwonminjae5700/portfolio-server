@@ -81,10 +81,10 @@ func LoadConfig() *Config {
 			Port: getEnv("REDIS_PORT", "6379"),
 		},
 		MinIO: MinIOConfig{
-			Endpoint:  getEnv("MINIO_ENDPOINT", "minio-api.kwon5700.kr"),
-			AccessKey: getEnv("MINIO_ACCESS_KEY", "F122SHJRLSTH95AVUZYF"),
-			SecretKey: getEnv("MINIO_SECRET_KEY", "rMo8Q+ktptivV79PeWzDdqj10KJOQ1ZGNzVrsxZ8"),
-			Bucket:    getEnv("MINIO_BUCKET", "kwon5700-blog"),
+			Endpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			AccessKey: getEnv("MINIO_ACCESS_KEY", "asdfasdf"),
+			SecretKey: getEnv("MINIO_SECRET_KEY", "asdfasdf"),
+			Bucket:    getEnv("MINIO_BUCKET", "kasdfasdfa"),
 			UseSSL:    getEnvAsBool("MINIO_USE_SSL", true),
 		},
 	}
