@@ -21,6 +21,10 @@ func main() {
 		log.Fatalf("Failed to initialize Redis: %v", err)
 	}
 
+	if err := database.InitMinIO(&cfg.MinIO); err != nil {
+		log.Fatalf("Failed to initialize MinIO: %v", err)
+	}
+
 	if err := database.AutoMigrate(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}

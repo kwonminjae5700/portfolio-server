@@ -54,4 +54,11 @@ func SetupRoutes(router *gin.Engine) {
 		categories.PUT("/:id", middleware.AuthMiddleware(), categoryHandler.UpdateCategory)
 		categories.DELETE("/:id", middleware.AuthMiddleware(), categoryHandler.DeleteCategory)
 	}
+
+	uploadHandler := handlers.NewUploadHandler()
+	upload := router.Group("/upload")
+	{
+		upload.POST("/image", middleware.AuthMiddleware(), uploadHandler.UploadImage)
+		upload.DELETE("/image", middleware.AuthMiddleware(), uploadHandler.DeleteImage)
+	}
 }

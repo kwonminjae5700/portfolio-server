@@ -12,6 +12,7 @@ type Config struct {
 	JWT      JWTConfig
 	SMTP     SMTPConfig
 	Redis    RedisConfig
+	MinIO    MinIOConfig
 }
 
 type DatabaseConfig struct {
@@ -44,6 +45,14 @@ type RedisConfig struct {
 	Port string
 }
 
+type MinIOConfig struct {
+	Endpoint  string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+	UseSSL    bool
+}
+
 func LoadConfig() *Config {
 	return &Config{
 		Database: DatabaseConfig{
@@ -71,6 +80,13 @@ func LoadConfig() *Config {
 			Host: getEnv("REDIS_HOST", "localhost"),
 			Port: getEnv("REDIS_PORT", "6379"),
 		},
+		MinIO: MinIOConfig{
+			Endpoint:  getEnv("MINIO_ENDPOINT", "minio-api.kwon5700.kr"),
+			AccessKey: getEnv("MINIO_ACCESS_KEY", "F122SHJRLSTH95AVUZYF"),
+			SecretKey: getEnv("MINIO_SECRET_KEY", "rMo8Q+ktptivV79PeWzDdqj10KJOQ1ZGNzVrsxZ8"),
+			Bucket:    getEnv("MINIO_BUCKET", "kwon5700-blog"),
+			UseSSL:    getEnvAsBool("MINIO_USE_SSL", true),
+		},
 	}
 }
 
@@ -92,6 +108,15 @@ func getEnvAsInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getEnvAsBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
 		}
 	}
 	return defaultValue
